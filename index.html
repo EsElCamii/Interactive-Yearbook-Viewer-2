@@ -1,0 +1,244 @@
+<!doctype html>
+<!--[if lt IE 7 ]> <html lang="en" class="ie6"> <![endif]-->
+<!--[if IE 7 ]>    <html lang="en" class="ie7"> <![endif]-->
+<!--[if IE 8 ]>    <html lang="en" class="ie8"> <![endif]-->
+<!--[if IE 9 ]>    <html lang="en" class="ie9"> <![endif]-->
+<!--[if !IE]><!--> <html lang="en"> <!--<![endif]-->
+<head>
+<meta name="viewport" content="width = 1050, user-scalable = no" />
+<script type="text/javascript" src="extras/jquery.min.1.7.js"></script>
+<script type="text/javascript" src="extras/modernizr.2.5.3.min.js"></script>
+</head>
+<body>
+
+<div class="top-nav" id="top-nav">
+	<button class="mode-toggle" id="mode-toggle" type="button" aria-label="Toggle dark mode" aria-pressed="false">
+		<span class="mode-icon mode-icon-light" aria-hidden="true">
+			<svg viewBox="0 0 24 24" width="18" height="18">
+				<circle cx="12" cy="12" r="5" fill="currentColor"></circle>
+				<g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+					<line x1="12" y1="1.5" x2="12" y2="4"></line>
+					<line x1="12" y1="20" x2="12" y2="22.5"></line>
+					<line x1="1.5" y1="12" x2="4" y2="12"></line>
+					<line x1="20" y1="12" x2="22.5" y2="12"></line>
+					<line x1="4.2" y1="4.2" x2="5.9" y2="5.9"></line>
+					<line x1="18.1" y1="18.1" x2="19.8" y2="19.8"></line>
+					<line x1="4.2" y1="19.8" x2="5.9" y2="18.1"></line>
+					<line x1="18.1" y1="5.9" x2="19.8" y2="4.2"></line>
+				</g>
+			</svg>
+		</span>
+		<span class="mode-icon mode-icon-dark" aria-hidden="true">
+			<svg viewBox="0 0 24 24" width="18" height="18">
+				<path d="M20.5 14.8A8.5 8.5 0 0 1 9.2 3.5a7 7 0 1 0 11.3 11.3z" fill="currentColor"></path>
+			</svg>
+		</span>
+	</button>
+	<div class="nav-links" aria-label="Sections">
+		<button class="nav-link" type="button" data-photo="1">Home</button>
+		<button class="nav-link" type="button" data-photo="3">Staff</button>
+		<button class="nav-link" type="button" data-photo="8">Maternal</button>
+		<button class="nav-link" type="button" data-photo="10">Kinder</button>
+		<button class="nav-link" type="button" data-photo="19">PYP</button>
+		<button class="nav-link" type="button" data-photo="39">MYP</button>
+		<button class="nav-link" type="button" data-photo="61">DP</button>
+		<button class="nav-link" type="button" data-photo="64">Seniors</button>
+		<button class="nav-link" type="button" data-photo="68">Events &amp; More</button>
+	</div>
+</div>
+
+<div class="magazine-viewport">
+	<div class="container">
+		<div class="magazine" id="magazine">
+		</div>
+	</div>
+	<div class="nav-controls">
+		<button class="nav-btn nav-prev" type="button" aria-label="Previous page">←</button>
+		<button class="nav-btn nav-next" type="button" aria-label="Next page">→</button>
+	</div>
+	<div class="rotate-hint" id="rotate-hint">Rotate your phone for the best view.</div>
+	<div class="zoom-hint" id="zoom-hint">Tip: Haz click o toca el anuario para hacer zoom.</div>
+</div>
+
+<script type="text/javascript">
+
+// Load the HTML4 version if there's not CSS transform
+
+yepnope({
+	test : Modernizr.csstransforms,
+	yep: ['lib/turn.js'],
+	nope: ['lib/turn.html4.min.js'],
+	both: ['css/basic.css', 'lib/zoom.js'],
+	complete: function() {
+		$(document).ready(function() {
+			var photoNumbers = [
+				1,3,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,89,90,91,92,93,94,95,96,97,98,99,100
+			];
+			window.photoNumbers = photoNumbers;
+
+			var totalPages = photoNumbers.length;
+			var photoToPage = {};
+			for (var p = 0; p < photoNumbers.length; p++) {
+				photoToPage[photoNumbers[p]] = p + 1;
+			}
+
+			// Initialize the turn.js flipbook
+			$('#magazine').turn({
+				width: 1800,
+				height: 900,
+				display: 'double',
+				pages: totalPages,
+				autoCenter: true,
+				when: {
+					missing: function(event, pages) {
+						for (var i = 0; i < pages.length; i++) {
+							$('#magazine').turn('addPage', page(pages[i], photoNumbers), pages[i]);
+						}
+					},
+					turned: function(event, page) {
+						updateActiveNav(page);
+					}
+				}
+			});
+
+			// Initialize the zoom viewport
+			$('.magazine-viewport').zoom({
+				flipbook: $('#magazine')
+			});
+
+			// Bind tap to zoom
+			$('.magazine-viewport').bind('zoom.tap', zoomTo);
+
+			// Resize handlers
+			$(window).resize(function() {
+				resizeViewport();
+			}).bind('orientationchange', function() {
+				resizeViewport();
+			});
+
+			// Initial size
+			resizeViewport();
+
+			$('.nav-prev').on('click', function() {
+				$('#magazine').turn('previous');
+			});
+
+			$('.nav-next').on('click', function() {
+				$('#magazine').turn('next');
+			});
+
+			$(document).on('keydown', function(event) {
+				if ($(event.target).is('input, textarea, select, button')) {
+					return;
+				}
+				if (event.which === 37) {
+					$('#magazine').turn('previous');
+				} else if (event.which === 39) {
+					$('#magazine').turn('next');
+				}
+			});
+
+			$('.top-nav .nav-link').on('click', function() {
+				var photo = parseInt($(this).data('photo'), 10);
+				var targetPage = photoToPage[photo];
+				if (targetPage) {
+					$('#magazine').turn('page', targetPage);
+				}
+			});
+
+			var $zoomHint = $('#zoom-hint');
+			$zoomHint.addClass('show');
+			setTimeout(function() {
+				$zoomHint.removeClass('show');
+			}, 10000);
+
+			$('#mode-toggle').on('click', function() {
+				var $body = $('body');
+				$body.toggleClass('dark-mode');
+				var isDark = $body.hasClass('dark-mode');
+				$(this).attr('aria-pressed', isDark);
+			});
+
+			updateActiveNav($('#magazine').turn('page'));
+		});
+	}
+});
+
+function updateActiveNav(page) {
+	if (page && window.photoNumbers) {
+		var currentPhoto = window.photoNumbers[page - 1];
+		$('.top-nav .nav-link').removeClass('active');
+		$('.top-nav .nav-link[data-photo="' + currentPhoto + '"]').addClass('active');
+	}
+}
+
+function page(num, photoNumbers) {
+	var photoNumber = (photoNumbers && photoNumbers[num - 1]) ? photoNumbers[num - 1] : num;
+	var elem = $('<div />', {'class': 'page'});
+	elem.append('<img src="Photos/' + photoNumber + '.png" alt="Page ' + num + '">');
+	return elem;
+}
+
+function zoomTo(event) {
+	setTimeout(function() {
+		if ($('.magazine-viewport').data().regionClicked) {
+			$('.magazine-viewport').data().regionClicked = false;
+		} else {
+			if ($('.magazine-viewport').zoom('value') == 1) {
+				$('.magazine-viewport').zoom('zoomIn', event);
+			} else {
+				$('.magazine-viewport').zoom('zoomOut');
+			}
+		}
+	}, 1);
+}
+
+function resizeViewport() {
+	var width = $(window).width();
+	var height = $(window).height();
+	var isMobile = width <= 900;
+	var isSmall = width <= 480;
+	var isLandscape = width > height;
+	var isPortrait = height >= width;
+	var displayMode = isMobile ? ((isLandscape && width >= 700) ? 'double' : 'single') : 'double';
+	var baseWidth = displayMode === 'double' ? 3600 : 1800;
+	var baseHeight = 900;
+	// Adjust this to make the book smaller on screen (e.g. 0.85 = 85% of fit).
+	var fitPadding = isSmall ? 0.96 : (isMobile ? (isLandscape ? 0.92 : 0.9) : 0.85);
+	var scale = Math.min(width / baseWidth, height / baseHeight) * fitPadding;
+	var minWidth = isMobile ? 240 : 320;
+	var bookWidth = Math.max(minWidth, Math.round(baseWidth * scale));
+	var bookHeight = Math.max(200, Math.round(baseHeight * scale));
+
+	$('.magazine-viewport').css({
+		width: width,
+		height: height
+	});
+
+	$('.magazine-viewport .container').css({
+		width: bookWidth,
+		height: bookHeight
+	});
+
+	$('.magazine-viewport .magazine').css({
+		width: bookWidth,
+		height: bookHeight,
+		left: -bookWidth / 2,
+		top: -bookHeight / 2
+	});
+
+	$('#magazine').turn('display', displayMode);
+	$('#magazine').turn('size', bookWidth, bookHeight);
+	$('.magazine-viewport').zoom('resize');
+
+	if (isMobile && isPortrait) {
+		$('#rotate-hint').addClass('show');
+	} else {
+		$('#rotate-hint').removeClass('show');
+	}
+}
+
+</script>
+
+</body>
+</html>
